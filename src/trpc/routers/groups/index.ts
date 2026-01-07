@@ -7,6 +7,7 @@ import { groupGiftsRouter } from '@/trpc/routers/groups/gifts'
 import { getGroupProcedure } from '@/trpc/routers/groups/get.procedure'
 import { groupStatsRouter } from '@/trpc/routers/groups/stats'
 import { updateGroupProcedure } from '@/trpc/routers/groups/update.procedure'
+import { toggleParticipantActiveProcedure } from '@/trpc/routers/groups/toggleParticipantActive.procedure'
 import { getGroupDetailsProcedure } from './getDetails.procedure'
 import { listGroupsProcedure } from './list.procedure'
 
@@ -22,4 +23,5 @@ export const groupsRouter = createTRPCRouter({
   list: listGroupsProcedure,
   create: createGroupProcedure,
   update: updateGroupProcedure,
+  toggleParticipantActive: toggleParticipantActiveProcedure,
 })
