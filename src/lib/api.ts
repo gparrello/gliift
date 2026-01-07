@@ -698,8 +698,8 @@ export async function createGift(
   })
 }
 
-export async function getGroupGifts(groupId: string) {
-  return prisma.gift.findMany({
+export async function getGroupGifts(groupId: string, currentParticipantId?: string) {
+  const gifts = await prisma.gift.findMany({
     select: {
       amount: true,
       category: true,
@@ -709,10 +709,12 @@ export async function getGroupGifts(groupId: string) {
       description: true,
       status: true,
       recipient: { select: { id: true, name: true } },
+      recipientId: true,
       paidFor: {
         select: {
           participant: { select: { id: true, name: true } },
           shares: true,
+          isParticipating: true,
         },
       },
       splitMode: true,
@@ -728,6 +730,13 @@ export async function getGroupGifts(groupId: string) {
     where: { groupId },
     orderBy: [{ createdAt: 'desc' }],
   })
+
+  // Filter out gifts where current user is the recipient
+  if (currentParticipantId) {
+    return gifts.filter((gift) => gift.recipientId !== currentParticipantId)
+  }
+
+  return gifts
 }
 
 export async function getGift(groupId: string, giftId: string) {
@@ -838,5 +847,59 @@ export async function voteOnGift(
       participantId,
       vote: voteType,
     },
+  })
+}
+
+export async function toggleGiftParticipation(
+  groupId: string,
+  giftId: string,
+  participantId: string,
+  isParticipating: boolean,
+) {
+  const gift = await getGift(groupId, giftId)
+  if (!gift) throw new Error(`Gift not found: ${giftId}`)
+  
+  // Check if gift is completed
+  if (gift.status === 'COMPLETED') {
+    throw new Error('Cannot change participation on completed gifts')
+  }
+
+  await logActivity(
+    groupId,
+    isParticipating ? ActivityType.OPT_IN_GIFT : ActivityType.OPT_OUT_GIFT,
+    {
+      participantId,
+      expenseId: giftId,
+    },
+  )
+
+  return prisma.giftPaidFor.update({
+    where: {
+      giftId_participantId: {
+        giftId,
+        participantId,
+      },
+    },
+    data: {
+      isParticipating,
+    },
+  })
+}
+
+export async function toggleParticipantActive(
+  groupId: string,
+  participantId: string,
+  isActive: boolean,
+) {
+  const group = await getGroup(groupId)
+  if (!group) throw new Error(`Invalid group ID: ${groupId}`)
+  
+  if (!group.participants.some((p) => p.id === participantId)) {
+    throw new Error(`Invalid participant ID: ${participantId}`)
+  }
+
+  return prisma.participant.update({
+    where: { id: participantId },
+    data: { isActive },
   })
 }

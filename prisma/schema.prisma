@@ -34,6 +34,7 @@ model Participant {
   giftsFor        Gift[]           @relation("GiftRecipient")
   giftsPaidFor    GiftPaidFor[]
   votes           Vote[]
+  isActive        Boolean          @default(true)
 }
 
 model Category {
@@ -139,6 +140,8 @@ enum ActivityType {
   UPDATE_GIFT
   DELETE_GIFT
   VOTE_GIFT
+  OPT_IN_GIFT
+  OPT_OUT_GIFT
 }
 
 model Gift {
@@ -154,7 +157,7 @@ model Gift {
   recipientId String
   paidFor     GiftPaidFor[]
   splitMode   SplitMode      @default(EVENLY)
-  status      GiftStatus     @default(PROPOSED)
+  status      GiftStatus     @default(PLANNING)
   votes       Vote[]
   documents   GiftDocument[]
   notes       String?
@@ -174,18 +177,19 @@ model GiftDocument {
 }
 
 enum GiftStatus {
-  PROPOSED
-  APPROVED
-  PURCHASED
-  REJECTED
+  PLANNING
+  BUYING
+  BOUGHT
+  COMPLETED
 }
 
 model GiftPaidFor {
-  gift          Gift        @relation(fields: [giftId], references: [id], onDelete: Cascade)
-  participant   Participant @relation(fields: [participantId], references: [id], onDelete: Cascade)
-  giftId        String
-  participantId String
-  shares        Int         @default(1)
+  gift            Gift        @relation(fields: [giftId], references: [id], onDelete: Cascade)
+  participant     Participant @relation(fields: [participantId], references: [id], onDelete: Cascade)
+  giftId          String
+  participantId   String
+  shares          Int         @default(1)
+  isParticipating Boolean     @default(true)
 
   @@id([giftId, participantId])
 }
