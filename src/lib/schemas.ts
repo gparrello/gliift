@@ -219,3 +219,138 @@ export type SplittingOptions = {
   splitMode: SplitMode
   paidFor: ExpenseFormValues['paidFor'] | null
 }
+
+// Gift form schema
+export const giftFormSchema = z
+  .object({
+    title: z.string({ required_error: 'titleRequired' }).min(2, 'min2'),
+    description: z.string().optional(),
+    category: z.coerce.number().default(0),
+    amount: z
+      .union(
+        [
+          z.number(),
+          z.string().transform((value, ctx) => {
+            const valueAsNumber = Number(value)
+            if (Number.isNaN(valueAsNumber))
+              ctx.addIssue({
+                code: z.ZodIssueCode.custom,
+                message: 'invalidNumber',
+              })
+            return valueAsNumber
+          }),
+        ],
+        { required_error: 'amountRequired' },
+      )
+      .refine((amount) => amount != 0, 'amountNotZero')
+      .refine((amount) => amount <= 10_000_000_00, 'amountTenMillion'),
+    recipientId: z.string({ required_error: 'recipientRequired' }),
+    paidFor: z
+      .array(
+        z.object({
+          participant: z.string(),
+          shares: z.union([
+            z.number(),
+            z.string().transform((value, ctx) => {
+              const normalizedValue = value.replace(/,/g, '.')
+              const valueAsNumber = Number(normalizedValue)
+              if (Number.isNaN(valueAsNumber))
+                ctx.addIssue({
+                  code: z.ZodIssueCode.custom,
+                  message: 'invalidNumber',
+                })
+              return value
+            }),
+          ]),
+        }),
+      )
+      .min(1, 'paidForMin1')
+      .superRefine((paidFor, ctx) => {
+        for (const { shares } of paidFor) {
+          const shareNumber = Number(shares)
+          if (shareNumber <= 0) {
+            ctx.addIssue({
+              code: z.ZodIssueCode.custom,
+              message: 'noZeroShares',
+            })
+          }
+        }
+      }),
+    splitMode: z
+      .enum<SplitMode, [SplitMode, ...SplitMode[]]>(
+        Object.values(SplitMode) as any,
+      )
+      .default('EVENLY'),
+    saveDefaultSplittingOptions: z.boolean(),
+    documents: z
+      .array(
+        z.object({
+          id: z.string(),
+          url: z.string().url(),
+          width: z.number().int().min(1),
+          height: z.number().int().min(1),
+        }),
+      )
+      .default([]),
+    notes: z.string().optional(),
+  })
+  .superRefine((gift, ctx) => {
+    switch (gift.splitMode) {
+      case 'EVENLY':
+        break // noop
+      case 'BY_SHARES':
+        break // noop
+      case 'BY_AMOUNT': {
+        const sum = gift.paidFor.reduce(
+          (sum, { shares }) => new Decimal(shares).add(sum),
+          new Decimal(0),
+        )
+        if (!sum.equals(new Decimal(gift.amount))) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: 'amountSum',
+            path: ['paidFor'],
+          })
+        }
+        break
+      }
+      case 'BY_PERCENTAGE': {
+        const sum = gift.paidFor.reduce(
+          (sum, { shares }) =>
+            sum +
+            (typeof shares === 'string'
+              ? Math.round(Number(shares) * 100)
+              : Number(shares)),
+          0,
+        )
+        if (sum !== 10000) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: 'percentageSum',
+            path: ['paidFor'],
+          })
+        }
+        break
+      }
+    }
+  })
+  .transform((gift) => {
+    return {
+      ...gift,
+      paidFor: gift.paidFor.map((paidFor) => {
+        const shares = paidFor.shares
+        if (typeof shares === 'string' && gift.splitMode !== 'BY_AMOUNT') {
+          return {
+            ...paidFor,
+            shares: Math.round(Number(shares) * 100),
+          }
+        }
+        return {
+          ...paidFor,
+          shares: Number(shares),
+        }
+      }),
+    }
+  })
+
+export type GiftFormValues = z.infer<typeof giftFormSchema>

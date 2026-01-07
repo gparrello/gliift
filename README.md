@@ -1,29 +1,28 @@
-[<img alt="Spliit" height="60" src="https://github.com/spliit-app/spliit/blob/main/public/logo-with-text.png?raw=true" />](https://spliit.app)
+# Gliift - Group Gift Planning & Cost Splitting
 
-Spliit is a free and open source alternative to Splitwise. You can either use the official instance at [Spliit.app](https://spliit.app), or deploy your own instance:
-
-[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Fspliit-app%2Fspliit&project-name=my-spliit-instance&repository-name=my-spliit-instance&stores=%5B%7B%22type%22%3A%22postgres%22%7D%5D&)
+Gliift is a free and open-source collaborative gift planning application. Create groups, propose gift ideas for recipients, vote on gifts, and split costs fairly among participants.
 
 ## Features
 
-- [x] Create a group and share it with friends
-- [x] Create expenses with description
-- [x] Display group balances
-- [x] Create reimbursement expenses
+- [x] Create groups and share with friends
+- [x] Propose gift ideas for group members
+- [x] Vote on proposed gifts (upvote/downvote/abstain)
+- [x] Split gift costs evenly or unevenly
+- [x] Multiple cost-splitting modes:
+  - Split evenly among participants
+  - Split by custom shares
+  - Split by percentage
+  - Split by specific amounts
+- [x] Track gift status (Proposed, Approved, Purchased, Rejected)
+- [x] Assign categories to gifts
+- [x] Add notes and images to gift proposals
 - [x] Progressive Web App
-- [x] Select all/no participant for expenses
-- [x] Split expenses unevenly [(#6)](https://github.com/spliit-app/spliit/issues/6)
-- [x] Mark a group as favorite [(#29)](https://github.com/spliit-app/spliit/issues/29)
-- [x] Tell the application who you are when opening a group [(#7)](https://github.com/spliit-app/spliit/issues/7)
-- [x] Assign a category to expenses [(#35)](https://github.com/spliit-app/spliit/issues/35)
-- [x] Search for expenses in a group [(#51)](https://github.com/spliit-app/spliit/issues/51)
-- [x] Upload and attach images to expenses [(#63)](https://github.com/spliit-app/spliit/issues/63)
-- [x] Create expense by scanning a receipt [(#23)](https://github.com/spliit-app/spliit/issues/23)
+- [x] Mark groups as favorites
+- [x] Activity tracking for all group actions
 
-### Possible incoming features
+### Legacy Expense Tracking
 
-- [ ] Ability to create recurring expenses [(#5)](https://github.com/spliit-app/spliit/issues/5)
-- [ ] Import expenses from Splitwise [(#22)](https://github.com/spliit-app/spliit/issues/22)
+The application maintains expense tracking capabilities from its Spliit foundation for groups that need both gift planning and expense management.
 
 ## Stack
 
@@ -35,23 +34,7 @@ Spliit is a free and open source alternative to Splitwise. You can either use th
 
 ## Contribute
 
-The project is open to contributions. Feel free to open an issue or even a pull-request! 
-Join the discussion in [the Spliit Discord server](https://discord.gg/YSyVXbwvSY).
-
-If you want to contribute financially and help us keep the application free and without ads, you can also:
-
-- 💜 [Sponsor me (Sebastien)](https://github.com/sponsors/scastiel), or
-- 💙 [Make a small one-time donation](https://donate.stripe.com/28o3eh96G7hH8k89Ba).
-
-### Translation
-
-The project's translations are managed using [our Weblate project](https://hosted.weblate.org/projects/spliit/spliit/). 
-You can easily add missing translations to the project or even add a new language!
-Here is the current state of translation:
-
-<a href="https://hosted.weblate.org/engage/spliit/">
-<img src="https://hosted.weblate.org/widget/spliit/spliit/multi-auto.svg" alt="Translation status" />
-</a>
+The project is a fork of [Spliit](https://github.com/spliit-app/spliit), adapted for collaborative gift planning and voting. Contributions are welcome!
 
 ## Run locally
 

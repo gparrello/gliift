@@ -19,6 +19,7 @@ model Group {
   currencyCode String?
   participants Participant[]
   expenses     Expense[]
+  gifts        Gift[]
   activities   Activity[]
   createdAt    DateTime      @default(now())
 }
@@ -30,6 +31,9 @@ model Participant {
   groupId         String
   expensesPaidBy  Expense[]
   expensesPaidFor ExpensePaidFor[]
+  giftsFor        Gift[]           @relation("GiftRecipient")
+  giftsPaidFor    GiftPaidFor[]
+  votes           Vote[]
 }
 
 model Category {
@@ -37,6 +41,7 @@ model Category {
   grouping String
   name     String
   Expense  Expense[]
+  Gift     Gift[]
 }
 
 model Expense {
@@ -130,4 +135,76 @@ enum ActivityType {
   CREATE_EXPENSE
   UPDATE_EXPENSE
   DELETE_EXPENSE
+  CREATE_GIFT
+  UPDATE_GIFT
+  DELETE_GIFT
+  VOTE_GIFT
+}
+
+model Gift {
+  id          String         @id
+  group       Group          @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  groupId     String
+  title       String
+  description String?        @db.Text
+  category    Category?      @relation(fields: [categoryId], references: [id])
+  categoryId  Int            @default(0)
+  amount      Int
+  recipient   Participant    @relation("GiftRecipient", fields: [recipientId], references: [id], onDelete: Cascade)
+  recipientId String
+  paidFor     GiftPaidFor[]
+  splitMode   SplitMode      @default(EVENLY)
+  status      GiftStatus     @default(PROPOSED)
+  votes       Vote[]
+  documents   GiftDocument[]
+  notes       String?
+  createdAt   DateTime       @default(now())
+
+  @@index([groupId])
+  @@index([recipientId])
+}
+
+model GiftDocument {
+  id     String  @id
+  url    String
+  width  Int
+  height Int
+  Gift   Gift?   @relation(fields: [giftId], references: [id])
+  giftId String?
+}
+
+enum GiftStatus {
+  PROPOSED
+  APPROVED
+  PURCHASED
+  REJECTED
+}
+
+model GiftPaidFor {
+  gift          Gift        @relation(fields: [giftId], references: [id], onDelete: Cascade)
+  participant   Participant @relation(fields: [participantId], references: [id], onDelete: Cascade)
+  giftId        String
+  participantId String
+  shares        Int         @default(1)
+
+  @@id([giftId, participantId])
+}
+
+model Vote {
+  id            String      @id
+  gift          Gift        @relation(fields: [giftId], references: [id], onDelete: Cascade)
+  giftId        String
+  participant   Participant @relation(fields: [participantId], references: [id], onDelete: Cascade)
+  participantId String
+  vote          VoteType
+  createdAt     DateTime    @default(now())
+
+  @@unique([giftId, participantId])
+  @@index([giftId])
+}
+
+enum VoteType {
+  UPVOTE
+  DOWNVOTE
+  ABSTAIN
 }

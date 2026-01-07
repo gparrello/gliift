@@ -637,3 +637,206 @@ function isDateInNextMonth(
 
   return true
 }
+
+// Gift-related functions
+export async function createGift(
+  giftFormValues: import('@/lib/schemas').GiftFormValues,
+  groupId: string,
+  participantId?: string,
+) {
+  const group = await getGroup(groupId)
+  if (!group) throw new Error(`Invalid group ID: ${groupId}`)
+
+  // Validate recipient
+  if (!group.participants.some((p) => p.id === giftFormValues.recipientId)) {
+    throw new Error(`Invalid recipient ID: ${giftFormValues.recipientId}`)
+  }
+
+  // Validate paidFor participants
+  for (const participant of giftFormValues.paidFor.map((p) => p.participant)) {
+    if (!group.participants.some((p) => p.id === participant))
+      throw new Error(`Invalid participant ID: ${participant}`)
+  }
+
+  const giftId = randomId()
+  await logActivity(groupId, ActivityType.CREATE_GIFT, {
+    participantId,
+    expenseId: giftId, // Using expenseId field for giftId
+    data: giftFormValues.title,
+  })
+
+  return prisma.gift.create({
+    data: {
+      id: giftId,
+      groupId,
+      title: giftFormValues.title,
+      description: giftFormValues.description,
+      categoryId: giftFormValues.category,
+      amount: giftFormValues.amount,
+      recipientId: giftFormValues.recipientId,
+      splitMode: giftFormValues.splitMode,
+      paidFor: {
+        createMany: {
+          data: giftFormValues.paidFor.map((paidFor) => ({
+            participantId: paidFor.participant,
+            shares: paidFor.shares,
+          })),
+        },
+      },
+      documents: {
+        createMany: {
+          data: giftFormValues.documents.map((doc) => ({
+            id: randomId(),
+            url: doc.url,
+            width: doc.width,
+            height: doc.height,
+          })),
+        },
+      },
+      notes: giftFormValues.notes,
+    },
+  })
+}
+
+export async function getGroupGifts(groupId: string) {
+  return prisma.gift.findMany({
+    select: {
+      amount: true,
+      category: true,
+      createdAt: true,
+      id: true,
+      title: true,
+      description: true,
+      status: true,
+      recipient: { select: { id: true, name: true } },
+      paidFor: {
+        select: {
+          participant: { select: { id: true, name: true } },
+          shares: true,
+        },
+      },
+      splitMode: true,
+      votes: {
+        select: {
+          id: true,
+          vote: true,
+          participant: { select: { id: true, name: true } },
+        },
+      },
+      _count: { select: { documents: true } },
+    },
+    where: { groupId },
+    orderBy: [{ createdAt: 'desc' }],
+  })
+}
+
+export async function getGift(groupId: string, giftId: string) {
+  return prisma.gift.findUnique({
+    where: { id: giftId },
+    include: {
+      recipient: true,
+      paidFor: { include: { participant: true } },
+      category: true,
+      documents: true,
+      votes: { include: { participant: true } },
+    },
+  })
+}
+
+export async function updateGift(
+  giftId: string,
+  giftFormValues: import('@/lib/schemas').GiftFormValues,
+  groupId: string,
+  participantId?: string,
+) {
+  const existingGift = await getGift(groupId, giftId)
+  if (!existingGift) throw new Error(`Gift not found: ${giftId}`)
+
+  await logActivity(groupId, ActivityType.UPDATE_GIFT, {
+    participantId,
+    expenseId: giftId,
+    data: giftFormValues.title,
+  })
+
+  await prisma.gift.update({
+    where: { id: giftId },
+    data: {
+      title: giftFormValues.title,
+      description: giftFormValues.description,
+      categoryId: giftFormValues.category,
+      amount: giftFormValues.amount,
+      recipientId: giftFormValues.recipientId,
+      splitMode: giftFormValues.splitMode,
+      paidFor: {
+        deleteMany: {},
+        createMany: {
+          data: giftFormValues.paidFor.map((paidFor) => ({
+            participantId: paidFor.participant,
+            shares: paidFor.shares,
+          })),
+        },
+      },
+      documents: {
+        deleteMany: {},
+        createMany: {
+          data: giftFormValues.documents.map((doc) => ({
+            id: randomId(),
+            url: doc.url,
+            width: doc.width,
+            height: doc.height,
+          })),
+        },
+      },
+      notes: giftFormValues.notes,
+    },
+  })
+}
+
+export async function deleteGift(
+  groupId: string,
+  giftId: string,
+  participantId?: string,
+) {
+  const existingGift = await getGift(groupId, giftId)
+  await logActivity(groupId, ActivityType.DELETE_GIFT, {
+    participantId,
+    expenseId: giftId,
+    data: existingGift?.title,
+  })
+
+  await prisma.gift.delete({
+    where: { id: giftId },
+    include: { paidFor: true, recipient: true, votes: true },
+  })
+}
+
+export async function voteOnGift(
+  groupId: string,
+  giftId: string,
+  participantId: string,
+  voteType: import('@prisma/client').VoteType,
+) {
+  await logActivity(groupId, ActivityType.VOTE_GIFT, {
+    participantId,
+    expenseId: giftId,
+    data: voteType,
+  })
+
+  return prisma.vote.upsert({
+    where: {
+      giftId_participantId: {
+        giftId,
+        participantId,
+      },
+    },
+    update: {
+      vote: voteType,
+    },
+    create: {
+      id: randomId(),
+      giftId,
+      participantId,
+      vote: voteType,
+    },
+  })
+}
